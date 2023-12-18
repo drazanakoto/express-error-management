@@ -1,6 +1,7 @@
 import express from 'express';
 import util from 'node:util';
 import {AsyncLocalStorage} from 'node:async_hooks';
+import {randomUUID as uuid} from 'node:crypto';
 
 const app = express();
 const sleep = util.promisify(setTimeout);
@@ -8,9 +9,22 @@ const sleep = util.promisify(setTimeout);
 
 const store = new AsyncLocalStorage();
 
+app.use(function (req, res, next) {
+    req['uuid'] = uuid();
+    next();
+});
 
 app.use(function (req, res, next) {
     store.run({req, res}, next);
+});
+
+app.get('/uuid', function handle(req, res) {
+    res.send(uuid());
+});
+
+app.get('/same/request', function handle(req, res) {
+    const ctx = store.getStore();
+    res.send(ctx.req === req);
 });
 
 app.get('/syncError', function handle(req, res) {
@@ -28,8 +42,9 @@ app.get('/asyncError', async function (req, res) {
 
 
 app.use(handleError);
-process.on('uncaughtException', function handleUncaughtException(err) {
+process.on('unhandledRejection', function handleUncaughtException(err, promise) {
     const {req, res} = store.getStore();
+    console.log(promise, req.uuid);
     return handleError(err, req, res);
 });
 
