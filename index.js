@@ -42,7 +42,7 @@ app.get('/asyncError', async function (req, res) {
 
 
 app.use(handleError);
-process.on('unhandledRejection', function handleUncaughtException(err, promise) {
+process.on('unhandledRejection', function(err, promise) {
     const {req, res} = store.getStore();
     console.log(promise, req.uuid);
     return handleError(err, req, res);
